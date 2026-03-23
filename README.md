@@ -19,4 +19,3 @@ This repository contains the control software, inverse kinematics (IK) logic, an
 ## 🚧 Development Status
 - [ ] Basic gait implementation (Walking).
 - [ ] Code implemantation
-- [ ] Control with ultrasound motors
