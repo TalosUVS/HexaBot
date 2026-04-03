@@ -9,6 +9,24 @@ int offset[3] = {90, 90, 90}; //coxia, femur and tibia in that order
 int pins[3] = {0,1,2}; /////////////////////////////////////////////////////////pins (coxa, femur, tibia);
 int driverNumber = 2; //will be taken as input from skeleton but is temporarily 1 (default). other options is 2
 
+Adafruit_PWMServoDriver driver1(0x41);  //Το μετακίνησα απο μεσα στη κλάση για να το βλέπει το emergency stop 
+
+//εδω οριζω το σκοτωμα του προγραμματος για εκτακτη αναγκη/////////////////////////////////////////////////////////////////////////////////
+//μεταβλητής ελέγχου στην αρχή
+bool isKilled = false;
+
+void emergencyStop() {
+    // Στέλνουμε σήμα "OFF" (4096) σε όλα τα κανάλια και των δύο drivers
+    for (int i = 0; i < 16; i++) {
+        // Χρησιμοποιούμε το όνομα του αντικειμένου driver που έχεις στην κλάση
+        // Αν ο driver είναι private στην κλάση, θα πρέπει να τον κάνεις public 
+        // ή να ορίσεις τους drivers ως global (προτείνεται).
+        driver1.setPWM(i, 4096, 0); 
+    }
+    isKilled = true;
+    Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
+}
+
 void setup(){
 
   serial.begin(9600);     //serial begin is global variable so it must be in setup 
@@ -27,7 +45,7 @@ class move{
     const int SERVO_MAX = 600;
     int offset[3];
     int driverNumber;
-    Adafruit_PWMServoDriver driver1;  //initiate driver
+    
 
     int femurPin, tibiaPin, coxaPin;
     float targetDistance;
@@ -129,7 +147,22 @@ void move::walk(){ //Βασική κίνηση περπατήματος (lift/ex
 
 void loop() {
 
-  leg.walk();
-  delay(300);
-}
+  // Έλεγχος πληκτρολογίου ΑΝ ΠΑΤΗΘΕΙ ΤΟ S ΣΤΑΜΑΤΑΕΙ
 
+  if (Serial.available() > 0) {
+      char c = Serial.read();
+      if (c == 's' || c == 'S') {
+          emergencyStop();
+      }
+  }
+
+  //αν δεν εχει πατηθεί το κουμπί
+  if (!isKilled) {
+      leg.walk();
+      delay(300);
+  } else {
+      // Αν ενεργοποιηθεί, ο κώδικας σταματά εδώ
+      delay(100);
+  }
+
+}
