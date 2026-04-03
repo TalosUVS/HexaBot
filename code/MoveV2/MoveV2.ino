@@ -1,3 +1,6 @@
+/*Ο κωδικας μεχρι τωρα περιέχει την κίνηση ενός ποδιού*/
+/*Ο δε κώδικας εχει δουλευτει και εχει δοκιμαστεί εντός εργαστηρίου*/
+
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
@@ -7,6 +10,9 @@ int pins[3] = {0,1,2}; /////////////////////////////////////////////////////////
 int driverNumber = 2; //will be taken as input from skeleton but is temporarily 1 (default). other options is 2
 
 void setup(){
+
+  serial.begin(9600);     //serial begin is global variable so it must be in setup 
+
 }
 
 
@@ -49,8 +55,7 @@ move::move(int * pins, int *offset, int driverNumber) {
   // Αρχικοποίηση του πρώτου driver
   driver1 = Adafruit_PWMServoDriver(0x41);          //temporary value (change to 0x3f + driverNumber)
 
-  // Αρχικοποίηση θέσης
-  Serial.begin(9600);
+  // Αρχικοποίηση θέση
   driver1.begin();
 
   //set initial position to 90 degrees
@@ -127,3 +132,4 @@ void loop() {
   leg.walk();
   delay(300);
 }
+
