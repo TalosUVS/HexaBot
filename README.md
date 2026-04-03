@@ -1,9 +1,9 @@
-# Hexabot - Our own spider robot
+# Hexabot
 
 **Hexabot** is a bio-inspired six-legged robot (hexapod) designed to mimic the movement and behavior of a spider. 
 
 ## Overview
-This repository contains the control software, inverse kinematics (IK) logic, and motion patterns for the Hexabot. The goal is to achieve stable walking.
+This repository contains the source code of the project, 3d designs and basic logic behind it's movement. The goal is to achieve stable walking.
 
 ## Key Features
 - **Hexapod Motion:** Realistic 6-legged walking gait.
@@ -17,5 +17,5 @@ This repository contains the control software, inverse kinematics (IK) logic, an
 - **Power Source:** 10C Li-Po Battery (11.1V)
 
 ## Development Status
-- [ ] Basic gait implementation (Walking).
+- [ ] Basic animalistic movement
 - [ ] Code implemantation
