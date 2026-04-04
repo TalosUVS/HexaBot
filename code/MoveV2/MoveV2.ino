@@ -12,16 +12,13 @@ int driverNumber = 2; //will be taken as input from skeleton but is temporarily 
 Adafruit_PWMServoDriver driver1(0x41);  //Το μετακίνησα απο μεσα στη κλάση για να το βλέπει το emergency stop 
 
 //εδω οριζω το σκοτωμα του προγραμματος για εκτακτη αναγκη/////////////////////////////////////////////////////////////////////////////////
-//μεταβλητής ελέγχου στην αρχή
+//μεταβλητη ελέγχου αν ειναι ντεντ , εδω δεν ειναι 
 bool isKilled = false;
 
 void emergencyStop() {
-    // Στέλνουμε σήμα "OFF" (4096) σε όλα τα κανάλια και των δύο drivers
+    // Στελνω το σημα 4096 σε ολα τα ντραιβερς για να τα κανει κιλ
     for (int i = 0; i < 16; i++) {
-        // Χρησιμοποιούμε το όνομα του αντικειμένου driver που έχεις στην κλάση
-        // Αν ο driver είναι private στην κλάση, θα πρέπει να τον κάνεις public 
-        // ή να ορίσεις τους drivers ως global (προτείνεται).
-        driver1.setPWM(i, 4096, 0); 
+        driver1.setPWM(i, 4096, 0);   //το αντικείμενο μας ειναι απο την κλάση
     }
     isKilled = true;
     Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
@@ -45,14 +42,12 @@ class move{
     const int SERVO_MAX = 600;
     int offset[3];
     int driverNumber;
-    
 
     int femurPin, tibiaPin, coxaPin;
     float targetDistance;
 
   public:
     move(int *pins, int *offset, int driverNumber);
-    
     void moveLeg(float x, float y);
     void walk();
 };
@@ -69,14 +64,12 @@ move::move(int * pins, int *offset, int driverNumber) {
     this->offset[i] = offset[i];
   }
 
-
   // Αρχικοποίηση του πρώτου driver
   driver1 = Adafruit_PWMServoDriver(0x41);          //temporary value (change to 0x3f + driverNumber)
-
-  // Αρχικοποίηση θέση
+  // Αρχικοποίηση θέσης
   driver1.begin();
 
-  //set initial position to 90 degrees
+  //set initial position to 90 degrees ( εκει που εχει γινει το καλιμπραρισμα)
   int n = map(90, 0, 180, SERVO_MIN, SERVO_MAX);
   driver1.setPWM(0, 0, n);
 
@@ -85,9 +78,7 @@ move::move(int * pins, int *offset, int driverNumber) {
 }
 
 
-
-// Η βασική συνάρτηση Inverse Kinematics για 2 αρθρωσεις 
-
+// Η βασική συνάρτηση Inverse Kinematics για femur και Tibia
 void move::moveLeg(float x, float y) {
     
   targetDistance = sqrt(pow(x, 2) + pow(y, 2));
@@ -105,15 +96,13 @@ void move::moveLeg(float x, float y) {
   float angleB_deg = angleB_rad * 180.0 / PI;
 
   //Νόμος των Συνημιτόνων για τη γωνία του Μηρού (Femur)
-
   // Βρίσκουμε την εσωτερική γωνία του τριγώνου
   float cosA = (pow(L1, 2) + pow(targetDistance, 2) - pow(L2, 2)) / (2 * L1 * targetDistance);
   float angleA_rad = acos(cosA);
   float angleA_deg = angleA_rad * 180.0 / PI;
   
   //Μετατροπή των μοιρών σε PWM values
-
-  //Εδω προσθετω και τα αντιστοιχα Offset 
+  //Χρησιμοποιώ την μαπ για να βγαλω τα ακρα της κίνησης του ποδιού , απο που μεχρι που
   int pwmFemur = map(angleA_deg + offset[1], 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
   int pwmTibia = map(angleB_deg + offset[2], 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
 
@@ -148,7 +137,6 @@ void move::walk(){ //Βασική κίνηση περπατήματος (lift/ex
 void loop() {
 
   // Έλεγχος πληκτρολογίου ΑΝ ΠΑΤΗΘΕΙ ΤΟ S ΣΤΑΜΑΤΑΕΙ
-
   if (Serial.available() > 0) {
       char c = Serial.read();
       if (c == 's' || c == 'S') {
