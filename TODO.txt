@@ -1,0 +1,6 @@
+Code:
+	-Clean up
+	-Fix kill switch (and test in lab)
+	-replace some of the temporary code with more permanent solutions, as mush as possible
+	-set up a program to run 3 legs at once to see if the legs hit each other with the current movement values
+		-if they hit each other adjust the values for coxa movement mainly.

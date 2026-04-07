@@ -1,18 +1,14 @@
-/*Ο κωδικας μεχρι τωρα περιέχει την κίνηση ενός ποδιού*/
-/*Ο δε κώδικας εχει δουλευτει και εχει δοκιμαστεί εντός εργαστηρίου*/
-
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
+
+Adafruit_PWMServoDriver driver1;
 
 int offset[3] = {90, 90, 90}; //coxia, femur and tibia in that order
 int pins[3] = {0,1,2}; /////////////////////////////////////////////////////////pins (coxa, femur, tibia);
 int driverNumber = 2; //will be taken as input from skeleton but is temporarily 1 (default). other options is 2
 
-Adafruit_PWMServoDriver driver1(0x41);  //Το μετακίνησα απο μεσα στη κλάση για να το βλέπει το emergency stop 
 
-//εδω οριζω το σκοτωμα του προγραμματος για εκτακτη αναγκη/////////////////////////////////////////////////////////////////////////////////
-//μεταβλητη ελέγχου αν ειναι ντεντ , εδω δεν ειναι 
 bool isKilled = false;
 
 void emergencyStop() {
@@ -24,13 +20,6 @@ void emergencyStop() {
     Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
 }
 
-void setup(){
-
-  serial.begin(9600);     //serial begin is global variable so it must be in setup 
-
-}
-
-
 class move{
   private:
     // Μήκη των μελών σε cm
@@ -38,17 +27,19 @@ class move{
     const float L2 = 15.0;
 
     // Ρυθμίσεις Servo (MG996R)
-    const int SERVO_MIN = 150;        //Safety Values
+    const int SERVO_MIN = 150; 
     const int SERVO_MAX = 600;
     int offset[3];
     int driverNumber;
+
 
     int femurPin, tibiaPin, coxaPin;
     float targetDistance;
 
   public:
     move(int *pins, int *offset, int driverNumber);
-    void moveLeg(float x, float y);
+    
+    void raiseLeg(float x, float y);
     void walk();
 };
 
@@ -64,29 +55,33 @@ move::move(int * pins, int *offset, int driverNumber) {
     this->offset[i] = offset[i];
   }
 
+
   // Αρχικοποίηση του πρώτου driver
-  driver1 = Adafruit_PWMServoDriver(0x41);          //temporary value (change to 0x3f + driverNumber)
-  // Αρχικοποίηση θέσης
-  driver1.begin();
 
-  //set initial position to 90 degrees ( εκει που εχει γινει το καλιμπραρισμα)
-  int n = map(90, 0, 180, SERVO_MIN, SERVO_MAX);
-  driver1.setPWM(0, 0, n);
 
-  //50hz is mg996r(this servo)'s frequency
-  driver1.setPWMFreq(50);
+
+  //set initial position to 90 degrees
+  // int n = map(90, 0, 180, SERVO_MIN, SERVO_MAX);
+  // driver1.setPWM(0, 0, n);
+
+
 }
 
 
-// Η βασική συνάρτηση Inverse Kinematics για femur και Tibia
-void move::moveLeg(float x, float y) {
+
+// Η βασική συνάρτηση Inverse Kinematics για 2 αρθρωσεις 
+
+void move::raiseLeg(float x, float y) {
     
   targetDistance = sqrt(pow(x, 2) + pow(y, 2));
 
   // Έλεγχος ορίων (Constraints)
 
-  if (targetDistance > (L1 + L2)) targetDistance = L1 + L2;
-  if (targetDistance < abs(L2 - L1)) targetDistance = abs(L2 - L1);
+  if (targetDistance > (L1 + L2)) 
+    targetDistance = L1 + L2;
+
+  if (targetDistance < abs(L2 - L1)) 
+    targetDistance = abs(L2 - L1);
 
   // Νόμος των Συνημιτόνων για τη γωνία του Γονάτου (Tibia)
   // cos(B) = (L1^2 + L2^2 - D^2) / (2 * L1 * L2)
@@ -102,33 +97,55 @@ void move::moveLeg(float x, float y) {
   float angleA_deg = angleA_rad * 180.0 / PI;
   
   //Μετατροπή των μοιρών σε PWM values
-  //Χρησιμοποιώ την μαπ για να βγαλω τα ακρα της κίνησης του ποδιού , απο που μεχρι που
-  int pwmFemur = map(angleA_deg + offset[1], 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
-  int pwmTibia = map(angleB_deg + offset[2], 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
+  //Εδω προσθετω και τα αντιστοιχα Offset 
+  int pwmFemur = map(angleA_deg, 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
+  int pwmTibia = map(angleB_deg, 0, 180, SERVO_MIN, SERVO_MAX);////////////////////////////////////////////
 
   //Εντολή στον Driver
-  driver1.setPWM(femurPin, 0, pwmFemur);
+  
   driver1.setPWM(tibiaPin, 0, pwmTibia);
+  delay(300);
+  driver1.setPWM(femurPin, 0, pwmFemur);
 
   Serial.print("Target: "); Serial.print(targetDistance);
   Serial.print("cm -> Femur: "); Serial.print(angleA_deg);
   Serial.print(" deg, Tibia: "); Serial.println(angleB_deg);
 }
 
-move leg(pins, offset, 1);
+move *leg = new move(pins, offset, 1);
 
-void move::walk(){ //Βασική κίνηση περπατήματος (lift/extend and move coxa, land and move back)
+void move::walk(){ //Βασική κίνηση περπατήματος 
 
-  this->moveLeg(14,6);
-  delay(300);
+  this->raiseLeg(10,8);
+  Serial.print("1");
+  delay(500);
 
-  driver1.setPWM(coxaPin, 0, 20 + offset[0]);
-  delay(300);
+  int coxaAngle = map(offset[0] + 20, 0, 180, SERVO_MIN, SERVO_MAX);
+  driver1.setPWM(coxaPin, 0,  coxaAngle);
+  Serial.print("2");
+  delay(500);
 
-  this->moveLeg(14,10);
-  delay(300);
 
-  driver1.setPWM(coxaPin, 0, offset[0]-20);
+  this->raiseLeg(16,2);
+  Serial.print("3");
+  delay(500);
+
+  coxaAngle = map(offset[0] - 20, 0, 180, SERVO_MIN, SERVO_MAX);
+  driver1.setPWM(coxaPin, 0, coxaAngle);
+  Serial.print("4");
+}
+
+void setup(){
+  //const int offset[3] = {90, 90, 90}; //coxia, femur and tibia in that order
+  //const int pins[3] = {0,1,2}; /////////////////////////////////////////////////////////pins (coxa, femur, tibia);
+  //const int driverNumber = 2; //will be taken as input from skeleton but is temporarily 1 (default). other options is 2
+  Wire.begin(6, 7);
+  Serial.begin(9600);
+  driver1 = Adafruit_PWMServoDriver(0x40);    //I think the program doesn't run with this outside setup right now, but it is worth testing it
+  driver1.begin();
+  //50hz is mg996r(this servo)'s frequency
+  driver1.setPWMFreq(50);
+  // Αρχικοποίηση του πρώτου driver
 }
 
 
@@ -146,11 +163,10 @@ void loop() {
 
   //αν δεν εχει πατηθεί το κουμπί
   if (!isKilled) {
-      leg.walk();
+      leg->walk();
       delay(300);
   } else {
       // Αν ενεργοποιηθεί, ο κώδικας σταματά εδώ
       delay(100);
   }
-
 }
