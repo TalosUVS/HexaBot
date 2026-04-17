@@ -2,42 +2,42 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
 
-#define COXA_ANGLE = 10;    //temporary safe value so that legs don't hit each other. Adjust depending on lab results
+#define COXA_ANGLE 10    //temporary safe value so that legs don't hit each other. Adjust depending on lab results
 
-#define L1 9.0;         //Leg part lengths
-#define L2 15.0;
+#define L1 9.0         //Leg part lengths
+#define L2 15.0
 
-#define SERVO_MIN = 150;  //angle adjustment variables for servo safety
-#define SERVO_MAX 600;
+#define SERVO_MIN 150  //angle adjustment variables for servo safety
+#define SERVO_MAX 600
 
-#define LEGPINS 3;      //number used for skeleton initialization (servos/leg)
+#define LEGPINS 3      //number used for skeleton initialization (servos/leg)
 
-#define FRONT 1;
-#define BACK 0;
+#define FRONT 1
+#define BACK 0
 
-#define GROUPA = 1;
-#define GROUPB = 2;
+#define GROUPA 1
+#define GROUPB 2
 
 int offsetA[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //leg1: coxia, femur and tibia, leg2: coxia, femur and tibia... in that order      GROUP 1
 int offsetB[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //GROUP 2
 int pinsA[9] = {0,1,2,3,4,5,6,7,8};   //pins in the same order as above GROUP 1
 int pinsB[9] = {0,1,2,3,4,5,6,7,8};   //GROUP 2
 
-
-Adafruit_PWMServoDriver driver1, driver2;
-
-driver1 = Adafruit_PWMServoDriver(0x40);    //temporarily here, might move to setup if it doesn't work
-driver2 = Adafruit_PWMServoDriver(0x41);
+Adafruit_PWMServoDriver driver1 = Adafruit_PWMServoDriver(0x40);    //temporarily here, might move to setup if it doesn't work
+Adafruit_PWMServoDriver driver2 = Adafruit_PWMServoDriver(0x41);
 
 bool isKilled = false;
 
-void emergencyStop() {
-    // Στελνω το σημα 4096 σε ολα τα ντραιβερς για να τα κανει κιλ
-    for (int i = 0; i < 16; i++) {
-      driver1.setPWM(i, 4096, 0);   //το αντικείμενο μας ειναι απο την κλάση
-      driver2.setPWM(i, 4096, 0);
-    }
-    isKilled = true;
+void OnOffSwitch() {
+    // // Στελνω το σημα 4096 σε ολα τα ντραιβερς για να τα κανει κιλ
+    // for (int i = 0; i < 16; i++) {
+    //   driver1.setPWM(i, 4096, 0);   //το αντικείμενο μας ειναι απο την κλάση
+    //   driver2.setPWM(i, 4096, 0);
+    // }
+    isKilled != isKilled;
+    oepin = 12;
+    digitalWrite(oepin, isKilled);
+
     Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
 }
 
@@ -47,21 +47,24 @@ class leg{
     Adafruit_PWMServoDriver driver;
 
     int femurPin, tibiaPin, coxaPin;
+    int polarity;
     float targetDistance;
 
   public:
-    leg(int *pins, int *offset, Adafruit_PWMServoDriver driver);
+    leg(int *pins, int *offset, Adafruit_PWMServoDriver driver, int polarity);
     
     void raiseLeg(float x, float y);
-    void walkleg();
+    void walkLeg();
     void coxaMove(int dir);
 };
 
-leg::leg(int * pins, int *offset, Adafruit_PWMServoDriver driver){
+leg::leg(int * pins, int *offset, Adafruit_PWMServoDriver driver, int polarity){
   // Αρχικοποίηση pins
+  Serial.print("balls\n");
   this->coxaPin = pins[0];
   this->femurPin = pins[1];
   this->tibiaPin = pins[2];
+  this->polarity = polarity;
 
   //Αρχικοποίηση offset ανά pin
 
@@ -72,16 +75,18 @@ leg::leg(int * pins, int *offset, Adafruit_PWMServoDriver driver){
   this->driver = driver;  
 
   //set initial position to 90 degrees
-  // int n = map(90, 0, 180, SERVO_MIN, SERVO_MAX);
-  // driver.setPWM(0, 0, n);
+  int n = map(90, 0, 180, SERVO_MIN, SERVO_MAX);
+  driver.setPWM(coxaPin, 0, n);
+  driver.setPWM(femurPin, 0, n);
+  driver.setPWM(tibiaPin, 0, n);
 }
 
 void leg::coxaMove(int dir){
   if (dir == FRONT){
-    int coxaAngle = map(offset[0] + COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+    int coxaAngle = map(offset[0] + polarity*COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
     driver.setPWM(coxaPin, 0,  coxaAngle);
   }else if(dir == BACK){
-    int coxaAngle = map(offset[0] - COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+    int coxaAngle = map(offset[0] - polarity*COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
     driver.setPWM(coxaPin, 0,  coxaAngle);
   }
 }
@@ -113,14 +118,21 @@ void leg::raiseLeg(float x, float y) {
   float angleA_rad = acos(cosA);
   float angleA_deg = angleA_rad * 180.0 / PI;
   
+  if(polarity == -1){
+    angleA_deg = 180 - angleA_deg;
+    angleB_deg = 180 - angleB_deg;
+  }
+
   //Μετατροπή των μοιρών σε PWM values
   //Εδω προσθετω και τα αντιστοιχα Offset 
   int pwmFemur = map(angleA_deg, 0, 180, SERVO_MIN, SERVO_MAX);
   int pwmTibia = map(angleB_deg, 0, 180, SERVO_MIN, SERVO_MAX);
 
   //Εντολή στον Driver
-  
+
+
   driver.setPWM(tibiaPin, 0, pwmTibia);
+  Serial.print("point 2\n");
   delay(300);
   driver.setPWM(femurPin, 0, pwmFemur);
 
@@ -159,21 +171,25 @@ class Hexabot{
 
     public:
       Hexabot();
-      void hexaWalk());
+      void hexaWalk();
 };
 
-Hexabot:Hexabot(){
-  legA1 = new leg(&pinsA[0], &offsetA[0], driver1);    //initialize GroupA
-  legB2 = new leg(&pinsA[LEGPINS], &offsetA[LEGPINS], driver1);
-  legC1 = new leg(&pinsA[2*LEGPINS], &offsetA[2*LEGPINS], driver1);
+Hexabot::Hexabot(){
+  Serial.print("I am\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+  legA1 = new leg(&pinsA[0], &offsetA[0], driver1, 1);    //initialize GroupA
+  legB2 = new leg(&pinsA[LEGPINS], &offsetA[LEGPINS], driver1, -1);
+  legC1 = new leg(&pinsA[2*LEGPINS], &offsetA[2*LEGPINS], driver1, 1);
 
-  legA2 = new leg(&pinsB[0], &offsetB[0], driver2);    //initialize GroupB
-  legB1 = new leg(&pinsB[LEGPINS], &offsetB[LEGPINS], driver2);
-  legC2 = new leg(&pinsB[2*LEGPINS], &offsetB[2*LEGPINS], driver2);
+  Serial.print("Dead\n");
+
+  legA2 = new leg(&pinsB[0], &offsetB[0], driver2, -1);    //initialize GroupB
+  legB1 = new leg(&pinsB[LEGPINS], &offsetB[LEGPINS], driver2, 1);
+  legC2 = new leg(&pinsB[2*LEGPINS], &offsetB[2*LEGPINS], driver2, -1);
 }
 
-void Hexabot:hexaWalk(){
+void Hexabot::hexaWalk(){
   
+  Serial.print("gga");
   legA2->raiseLeg(16,2);  //lower groupB
   legB1->raiseLeg(16,2);
   legC2->raiseLeg(16,2);
@@ -213,10 +229,12 @@ void Hexabot:hexaWalk(){
   delay(500);
 }
 
+Hexabot *hexa;
+
 void setup(){
 
   Wire.begin(6, 7);
-  Serial.begin(9600);
+  Serial.begin(115200);
 
 
   driver1.begin();
@@ -225,26 +243,26 @@ void setup(){
   //50hz is mg996r(this servo)'s frequency
   driver1.setPWMFreq(50);
   driver2.setPWMFreq(50);
+  hexa = new Hexabot();
   // Αρχικοποίηση του πρώτου driver
 }
 
-Hexabot *hexa = new Hexabot();
 
 void loop() {
 
   // Έλεγχος πληκτρολογίου ΑΝ ΠΑΤΗΘΕΙ ΤΟ S ΣΤΑΜΑΤΑΕΙ
   if (Serial.available() > 0) {
       char c = Serial.read();
+
       if (c == 's' || c == 'S') {
-          emergencyStop();
+          OnOffSwitch();
       }
   }
-
+  
   //αν δεν εχει πατηθεί το κουμπί
   if (!isKilled) {
-      hexa->hexaWalk();
-  } else {
-      // Αν ενεργοποιηθεί, ο κώδικας σταματά εδώ
-      delay(100);
+      Serial.print("ni");
+      //hexa->hexaWalk();
+      delay(300);
   }
 }
