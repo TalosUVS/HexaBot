@@ -15,8 +15,8 @@
 #define FRONT 1
 #define BACK 0
 
-#define GROUPA 1
-#define GROUPB 2
+// #define GROUPA 1  //Δεν τα χρησιμοποιούμε πουθενά
+// #define GROUPB 2
 
 int offsetA[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //leg1: coxia, femur and tibia, leg2: coxia, femur and tibia... in that order      GROUP 1
 int offsetB[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //GROUP 2
@@ -34,11 +34,14 @@ void OnOffSwitch() {
     //   driver1.setPWM(i, 4096, 0);   //το αντικείμενο μας ειναι απο την κλάση
     //   driver2.setPWM(i, 4096, 0);
     // }
-    isKilled != isKilled;
-    oepin = 12;
-    digitalWrite(oepin, isKilled);
+    isKilled != isKilled; 
+    oepin = 12; // Χρησιμοποιούμε το OE του driver για να κλείνει ακαριαία
+    digitalWrite(oepin, isKilled); // Αν OE = 1 κλείνει
 
-    Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
+    if(isKilled)
+      Serial.println("!!! PROGRAM KILLING !!!");  //Μηνυμα στον σειριακο
+    else
+      Serial.println("!!! PROGRAM STARTING !!!");
 }
 
 class leg{
@@ -47,14 +50,14 @@ class leg{
     Adafruit_PWMServoDriver driver;
 
     int femurPin, tibiaPin, coxaPin;
-    int polarity;
+    int polarity; //Οι μεριές είναι mirrored σε κάθε τους κίνηση λόγω κατασκευής
     float targetDistance;
 
   public:
     leg(int *pins, int *offset, Adafruit_PWMServoDriver driver, int polarity);
     
     void raiseLeg(float x, float y);
-    void walkLeg();
+    //void walkLeg();
     void coxaMove(int dir);
 };
 
@@ -142,26 +145,26 @@ void leg::raiseLeg(float x, float y) {
 }
 
 
-void leg::walkLeg(){ //Βασική κίνηση περπατήματος 
+// void leg::walkLeg(){ //Βασική κίνηση περπατήματος // ΔΕΝ ΧΡΗΣΙΜΟΠΟΙΗΤΑΙ ΠΟΥΘΕΝΑ
 
-  this->raiseLeg(10,8);
-  Serial.print("1");
-  delay(500);
+//   this->raiseLeg(10,8);
+//   Serial.print("1");
+//   delay(500);
 
-  int coxaAngle = map(offset[0] + COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
-  driver.setPWM(coxaPin, 0,  coxaAngle);
-  Serial.print("2");
-  delay(500);
+//   int coxaAngle = map(offset[0] + COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+//   driver.setPWM(coxaPin, 0,  coxaAngle);
+//   Serial.print("2");
+//   delay(500);
 
 
-  this->raiseLeg(16,2);
-  Serial.print("3");
-  delay(500);
+//   this->raiseLeg(16,2);
+//   Serial.print("3");
+//   delay(500);
 
-  coxaAngle = map(offset[0] - COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
-  driver.setPWM(coxaPin, 0, coxaAngle);
-  Serial.print("4");
-}
+//   coxaAngle = map(offset[0] - COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+//   driver.setPWM(coxaPin, 0, coxaAngle);
+//   Serial.print("4");
+// }
 
 class Hexabot{
   private:
@@ -171,7 +174,12 @@ class Hexabot{
 
     public:
       Hexabot();
-      void hexaWalk();
+      void WalkForward(); //Οχι hexawalk επειδή κουνιέται μόνο ευθεία
+      void TurnRight();
+      void TurnLeft();
+      void WalkBack();
+      //void WalkLeft();
+      // void WalkRight();
 };
 
 Hexabot::Hexabot(){
@@ -187,13 +195,10 @@ Hexabot::Hexabot(){
   legC2 = new leg(&pinsB[2*LEGPINS], &offsetB[2*LEGPINS], driver2, -1);
 }
 
-void Hexabot::hexaWalk(){
+void Hexabot::WalkForward(){
   
   Serial.print("gga");
-  legA2->raiseLeg(16,2);  //lower groupB
-  legB1->raiseLeg(16,2);
-  legC2->raiseLeg(16,2);
-  delay(250);
+  
   legA1->raiseLeg(10,8);  //raise groupA
   legB2->raiseLeg(10,8);
   legC1->raiseLeg(10,8);
@@ -227,13 +232,144 @@ void Hexabot::hexaWalk(){
   legC2->coxaMove(FRONT);
   Serial.print("4");
   delay(500);
+  
+  legA2->raiseLeg(16,2);  //lower groupB
+  legB1->raiseLeg(16,2);
+  legC2->raiseLeg(16,2);
+  delay(250);
 }
+
+void Hexabot :: turnRight()
+{
+  
+  legA1->raiseLeg(10,8);  //raise groupA
+  legB2->raiseLeg(10,8);
+  legC1->raiseLeg(10,8);
+  delay(250);
+
+  legA1->coxaMove(FRONT); //send groupA front, groupB back
+  legB2->coxaMove(FRONT);
+  legC1->coxaMove(FRONT);
+  legA2->coxaMove(FRONT);
+  legB1->coxaMove(FRONT);
+  legC2->coxaMove(FRONT);
+  Serial.print("2");
+  delay(500);
+
+  legA1->raiseLeg(16,2);  //lower groupA
+  legB2->raiseLeg(16,2);
+  legC1->raiseLeg(16,2);
+  delay(250);
+  legA2->raiseLeg(10,8);  //raise groupB
+  legB1->raiseLeg(10,8);
+  legC2->raiseLeg(10,8);
+  Serial.print("3");
+  delay(250);
+
+  legA1->coxaMove(FRONT);  //send group A back, groupB front
+  legB2->coxaMove(FRONT);
+  legC1->coxaMove(FRONT);
+  legA2->coxaMove(FRONT);
+  legB1->coxaMove(FRONT);
+  legC2->coxaMove(FRONT);
+  Serial.print("4");
+  delay(500);
+  
+  legA2->raiseLeg(16,2);  //lower groupB
+  legB1->raiseLeg(16,2);
+  legC2->raiseLeg(16,2);
+  delay(250);
+}
+
+void Hexabot :: turnLeft()
+{
+  legA1->raiseLeg(10,8);  //raise groupA
+  legB2->raiseLeg(10,8);
+  legC1->raiseLeg(10,8);
+  delay(250);
+
+  legA1->coxaMove(BACK); //send groupA front, groupB back
+  legB2->coxaMove(BACK);
+  legC1->coxaMove(BACK);
+  legA2->coxaMove(BACK);
+  legB1->coxaMove(BACK);
+  legC2->coxaMove(BACK);
+  Serial.print("2");
+  delay(500);
+
+  legA1->raiseLeg(16,2);  //lower groupA
+  legB2->raiseLeg(16,2);
+  legC1->raiseLeg(16,2);
+  delay(250);
+  legA2->raiseLeg(10,8);  //raise groupB
+  legB1->raiseLeg(10,8);
+  legC2->raiseLeg(10,8);
+  Serial.print("3");
+  delay(250);
+
+  legA1->coxaMove(BACK);  //send group A back, groupB front
+  legB2->coxaMove(BACK);
+  legC1->coxaMove(BACK);
+  legA2->coxaMove(BACK);
+  legB1->coxaMove(BACK);
+  legC2->coxaMove(BACK);
+  Serial.print("4");
+  delay(500);
+  
+  legA2->raiseLeg(16,2);  //lower groupB
+  legB1->raiseLeg(16,2);
+  legC2->raiseLeg(16,2);
+  delay(250);
+}
+
+void Hexabot :: WalkBack()
+{
+  legA1->raiseLeg(10,8);  //raise groupA
+  legB2->raiseLeg(10,8);
+  legC1->raiseLeg(10,8);
+  Serial.print("1");
+  delay(250);
+
+  legA1->coxaMove(BACK); //send groupA back, groupB front
+  legB2->coxaMove(BACK);
+  legC1->coxaMove(BACK);
+  legA2->coxaMove(FRONT);
+  legB1->coxaMove(FRONT);
+  legC2->coxaMove(FRONT);
+  Serial.print("2");
+  delay(500);
+
+  legA1->raiseLeg(16,2);  //lower groupA
+  legB2->raiseLeg(16,2);
+  legC1->raiseLeg(16,2);
+  delay(250);
+  legA2->raiseLeg(10,8);  //raise groupB
+  legB1->raiseLeg(10,8);
+  legC2->raiseLeg(10,8);
+  Serial.print("3");
+  delay(250);
+
+  legA1->coxaMove(FRONT);  //send group A front, groupB back
+  legB2->coxaMove(FRONT);
+  legC1->coxaMove(FRONT);
+  legA2->coxaMove(BACK);
+  legB1->coxaMove(BACK);
+  legC2->coxaMove(BACK);
+  Serial.print("4");
+  delay(500);
+  
+  legA2->raiseLeg(16,2);  //lower groupB
+  legB1->raiseLeg(16,2);
+  legC2->raiseLeg(16,2);
+  delay(250);
+}
+
 
 Hexabot *hexa;
 
 void setup(){
 
-  Wire.begin(6, 7);
+  Wire.begin(5, 6); //Υπάρχει περίπτωση να μη χρειαστεί
   Serial.begin(115200);
 
 
@@ -244,7 +380,6 @@ void setup(){
   driver1.setPWMFreq(50);
   driver2.setPWMFreq(50);
   hexa = new Hexabot();
-  // Αρχικοποίηση του πρώτου driver
 }
 
 
@@ -262,7 +397,7 @@ void loop() {
   //αν δεν εχει πατηθεί το κουμπί
   if (!isKilled) {
       Serial.print("ni");
-      //hexa->hexaWalk();
+      //hexa->Walkforward();
       delay(300);
   }
 }
