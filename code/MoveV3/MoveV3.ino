@@ -2,7 +2,7 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
 
-#define COXA_ANGLE 10    //temporary safe value so that legs don't hit each other. Adjust depending on lab results
+#define MAX_COXA_ANGLE 10    //temporary safe value so that legs don't hit each other. Adjust depending on lab results
 
 #define L1 9.0         //Leg part lengths
 #define L2 15.0
@@ -13,7 +13,7 @@
 #define LEGPINS 3      //number used for skeleton initialization (servos/leg)
 
 #define FRONT 1
-#define BACK 0
+#define BACK -1
 
 // #define GROUPA 1  //Δεν τα χρησιμοποιούμε πουθενά
 // #define GROUPB 2
@@ -22,6 +22,7 @@ int offsetA[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //leg1: coxia, femur and
 int offsetB[9] = {90, 90, 90, 90, 90, 90, 90, 90, 90};  //GROUP 2
 int pinsA[9] = {0,1,2,3,4,5,6,7,8};   //pins in the same order as above GROUP 1
 int pinsB[9] = {0,1,2,3,4,5,6,7,8};   //GROUP 2
+float moveAngle;
 
 Adafruit_PWMServoDriver driver1 = Adafruit_PWMServoDriver(0x40);    //temporarily here, might move to setup if it doesn't work
 Adafruit_PWMServoDriver driver2 = Adafruit_PWMServoDriver(0x41);
@@ -84,14 +85,20 @@ leg::leg(int * pins, int *offset, Adafruit_PWMServoDriver driver, int polarity){
   driver.setPWM(tibiaPin, 0, n);
 }
 
-void leg::coxaMove(int dir){
-  if (dir == FRONT){
-    int coxaAngle = map(offset[0] + polarity*COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+void leg::coxaMove(float moveAngle1){
+  /*if (dir == FRONT){
+    int coxaAngle = map(offset[0] + polarity*MAX_COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
     driver.setPWM(coxaPin, 0,  coxaAngle);
   }else if(dir == BACK){
-    int coxaAngle = map(offset[0] - polarity*COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+    int coxaAngle = map(offset[0] - polarity*MAX_COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
     driver.setPWM(coxaPin, 0,  coxaAngle);
   }
+  */
+  
+  //experimental 360
+  int coxaAngle = map(offset[0] + cos(moveAngle1)*polarity*MAX_COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+  driver.setPWM(coxaPin, 0,  coxaAngle);
+
 }
 
 // Η βασική συνάρτηση Inverse Kinematics για 2 αρθρωσεις 
@@ -151,7 +158,7 @@ void leg::raiseLeg(float x, float y) {
 //   Serial.print("1");
 //   delay(500);
 
-//   int coxaAngle = map(offset[0] + COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+//   int coxaAngle = map(offset[0] + MAX_COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
 //   driver.setPWM(coxaPin, 0,  coxaAngle);
 //   Serial.print("2");
 //   delay(500);
@@ -161,7 +168,7 @@ void leg::raiseLeg(float x, float y) {
 //   Serial.print("3");
 //   delay(500);
 
-//   coxaAngle = map(offset[0] - COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
+//   coxaAngle = map(offset[0] - MAX_COXA_ANGLE, 0, 180, SERVO_MIN, SERVO_MAX);
 //   driver.setPWM(coxaPin, 0, coxaAngle);
 //   Serial.print("4");
 // }
@@ -174,10 +181,11 @@ class Hexabot{
 
     public:
       Hexabot();
-      void WalkForward(); //Οχι hexawalk επειδή κουνιέται μόνο ευθεία
-      void TurnRight();
-      void TurnLeft();
-      void WalkBack();
+      //void WalkForward(); //Οχι hexawalk επειδή κουνιέται μόνο ευθεία
+      //void TurnRight();
+      //void TurnLeft();
+      //void WalkBack();
+      void hexaWalk(float moveAngle1);      //Ναι hexawalk, θεωρητικά τώρα 360 deg movement
       //void WalkLeft();
       // void WalkRight();
 };
@@ -195,6 +203,72 @@ Hexabot::Hexabot(){
   legC2 = new leg(&pinsB[2*LEGPINS], &offsetB[2*LEGPINS], driver2, -1);
 }
 
+void Hexabot::hexaWalk(float moveAngle1){
+  
+  Serial.print("gga");
+  
+  legA1->raiseLeg(10,8);  //raise groupA
+  legB2->raiseLeg(10,8);
+  legC1->raiseLeg(10,8);
+  Serial.print("1");
+  delay(100);
+  legA1->raiseLeg(10 + 8*sin(moveAngle1),8);     //expand groupA
+  legB2->raiseLeg(10 + 8*sin(moveAngle1),8);
+  legC1->raiseLeg(10 + 8*sin(moveAngle1),8);
+  Serial.print("2");
+  delay(100);
+
+  legA2->raiseLeg(10,2);      //retract groupB
+  legB1->raiseLeg(10,2);
+  legC2->raiseLeg(10,2);
+  delay(100);
+
+  legA1->coxaMove(FRONT * moveAngle1); //send groupA front, groupB back
+  legB2->coxaMove(FRONT * moveAngle1);
+  legC1->coxaMove(FRONT * moveAngle1);
+  legA2->coxaMove(BACK * moveAngle1);
+  legB1->coxaMove(BACK * moveAngle1);
+  legC2->coxaMove(BACK * moveAngle1);
+  Serial.print("2");
+  delay(300);
+
+  legA1->raiseLeg(10 + 8*sin(moveAngle1),2);  //lower groupA
+  legB2->raiseLeg(10 + 8*sin(moveAngle1),2);
+  legC1->raiseLeg(10 + 8*sin(moveAngle1),2);
+  delay(100);
+
+  legA2->raiseLeg(10,8);  //raise groupB
+  legB1->raiseLeg(10,8);
+  legC2->raiseLeg(10,8);
+  Serial.print("3");
+  delay(100);
+  legA2->raiseLeg(10 + 8*sin(moveAngle1),8);  //expand groupB
+  legB1->raiseLeg(10 + 8*sin(moveAngle1),8);
+  legC2->raiseLeg(10 + 8*sin(moveAngle1),8);
+  Serial.print("3");
+  delay(100);
+
+  legA1->raiseLeg(10,2);      //retract groupA
+  legB2->raiseLeg(10,2);
+  legC1->raiseLeg(10,2);
+  delay(100);
+
+  legA1->coxaMove(BACK * moveAngle1);  //send group A back, groupB front
+  legB2->coxaMove(BACK * moveAngle1);
+  legC1->coxaMove(BACK * moveAngle1);
+  legA2->coxaMove(FRONT * moveAngle1);
+  legB1->coxaMove(FRONT * moveAngle1);
+  legC2->coxaMove(FRONT * moveAngle1);
+  Serial.print("4");
+  delay(300);
+  
+  legA2->raiseLeg(10 + 8*sin(moveAngle1),2);  //lower groupB
+  legB1->raiseLeg(10 + 8*sin(moveAngle1),2);
+  legC2->raiseLeg(10 + 8*sin(moveAngle1),2);
+  delay(100);
+}
+
+/*
 void Hexabot::WalkForward(){
   
   Serial.print("gga");
@@ -320,7 +394,7 @@ void Hexabot :: turnLeft()
   legB1->raiseLeg(16,2);
   legC2->raiseLeg(16,2);
   delay(250);
-}
+}       //TODO: FIX!
 
 void Hexabot :: WalkBack()
 {
@@ -362,7 +436,7 @@ void Hexabot :: WalkBack()
   legB1->raiseLeg(16,2);
   legC2->raiseLeg(16,2);
   delay(250);
-}
+}*/
 
 
 Hexabot *hexa;
@@ -397,7 +471,7 @@ void loop() {
   //αν δεν εχει πατηθεί το κουμπί
   if (!isKilled) {
       Serial.print("ni");
-      //hexa->Walkforward();
+      hexa->hexaWalk(moveAngle);
       delay(300);
   }
 }
