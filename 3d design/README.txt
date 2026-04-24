@@ -1,0 +1,4 @@
+Printable Hexapod by manchi on Thingiverse: https://www.thingiverse.com/thing:10667
+
+Summary:
+This is a printable Hexapod. It is still not very stable and still learning to walk, but it is a good start. It needs some changes in the leg design as sometimes they bend under the weight.The initial design is based on :http://robozone.su/forum/textversion.html?t58The changes I have done are the additions described below and also decrease the size of the Body plates to fit a standard Mendel.And I am currently using this software to control it: http://www.hexapodrobot.com/forum/viewtopic.php?f=25&amp;t=160Be aware that the hexapod is still not very stable (legs bending) and that is why it is work in progress.
