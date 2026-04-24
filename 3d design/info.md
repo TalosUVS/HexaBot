@@ -6,6 +6,6 @@ Original Design: [Insert Name of Original Project, e.g., "The Mark II Hexapod"]
 
 Source: (https://www.thingiverse.com/thing:10667)
 
-License: All original design licenses (e.g., Creative Commons / MIT) have been preserved and are available in the LICENSE.txt file within this directory.
+License: All original design licenses have been preserved and are available in the LICENSE.txt file within this directory.
 
 Material: PLA printed with 100% infill for structural rigidity.
